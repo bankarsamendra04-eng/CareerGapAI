@@ -52,6 +52,7 @@ function confirmResume(file) { $("#file-label").textContent = file.name; toast("
 $("#resume-file").addEventListener("change", event => { const file = event.target.files[0]; if (!file) return; if (isSupportedResume(file)) confirmResume(file); else event.target.value = ""; });
 const dropzone = $("#dropzone"); ["dragenter","dragover"].forEach(type => dropzone.addEventListener(type, e => { e.preventDefault(); dropzone.classList.add("dragover"); })); ["dragleave","drop"].forEach(type => dropzone.addEventListener(type, e => { e.preventDefault(); dropzone.classList.remove("dragover"); })); dropzone.addEventListener("drop", e => {
   const file = e.dataTransfer.files[0];
+  if (!file) { toast("Drop a resume file — PDF, DOC, DOCX, or TXT."); return; }
   if (!isSupportedResume(file)) return;
   try {
     const transfer = new DataTransfer();
