@@ -179,7 +179,7 @@ JSON schema only. Do not include secrets or private personal data in the respons
 """
     client = genai.Client(api_key=api_key)
     response = client.models.generate_content(
-        model=os.getenv("GEMINI_MODEL", "gemini-2.5-flash"),
+        model=os.getenv("GEMINI_MODEL", "gemini-3.6-flash"),
         contents=prompt,
         config={"response_mime_type": "application/json"},
     )
