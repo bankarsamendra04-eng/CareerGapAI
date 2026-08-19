@@ -14,12 +14,27 @@ const views = {
 const $ = selector => document.querySelector(selector);
 const toast = message => { const el = $("#toast"); el.textContent = message; el.classList.add("show"); setTimeout(() => el.classList.remove("show"), 2800); };
 let analysisReady = false;
+let currentAnalysis = null;
 const maxResumeSize = 10 * 1024 * 1024;
 const supportedResumeExtensions = [".pdf", ".doc", ".docx", ".txt"];
 function renderGaps() {
   $("#gap-list").innerHTML = gapData.slice(0,3).map(g => `<div class="gap-item"><span class="skill-token ${g.tone}">${g.icon}</span><div><strong>${g.name}</strong><small>${g.detail}</small></div><span class="priority ${g.priority === "HIGH" ? "high" : "medium"}">${g.priority}</span><span class="gap-action">→</span></div>`).join("");
 }
-function showDashboard() {
+function applyAnalysis(analysis) {
+  currentAnalysis = analysis;
+  const score = document.querySelector(".score-row>strong");
+  const scorePercent = document.querySelector(".score-ring b");
+  const skillMatch = document.querySelector(".metric-card>strong");
+  if (score) score.textContent = analysis.readiness_score;
+  if (scorePercent) scorePercent.textContent = `${analysis.readiness_score}%`;
+  if (skillMatch) skillMatch.innerHTML = `${analysis.skill_match}<span>%</span>`;
+  document.querySelector(".score-bar span").style.width = `${analysis.readiness_score}%`;
+  document.querySelector(".mini-bar span").style.width = `${analysis.skill_match}%`;
+  const gaps = analysis.gaps || [];
+  gapData.splice(0, gapData.length, ...gaps.map(gap => ({...gap, tone: gap.tone || "red"})));
+}
+function showDashboard(analysis) {
+  applyAnalysis(analysis);
   analysisReady = true;
   $("#setup-view").classList.add("hidden"); $("#dashboard-view").classList.remove("hidden"); $("#detail-view").classList.add("hidden");
   $("#target-role-display").textContent = $("#role-select").value;
@@ -38,7 +53,28 @@ document.addEventListener("click", event => {
   if (viewButton) { event.preventDefault(); showView(viewButton.dataset.view); }
   const toastButton = event.target.closest("[data-toast]"); if (toastButton) toast(toastButton.dataset.toast);
 });
-$("#analyze-button").addEventListener("click", showDashboard);
+$("#analyze-button").addEventListener("click", async () => {
+  const button = $("#analyze-button");
+  const formData = new FormData();
+  const file = $("#resume-file").files[0];
+  if (file) formData.append("resume", file);
+  formData.append("sample", String($("#file-label").textContent === "Sample profile loaded"));
+  formData.append("role", $("#role-select").value);
+  formData.append("github_username", $("#github-input").value);
+  button.disabled = true;
+  button.querySelector("span").textContent = "…";
+  try {
+    const response = await fetch("/api/analyze", {method: "POST", body: formData});
+    const payload = await response.json();
+    if (!response.ok) throw new Error(payload.detail || "Analysis failed.");
+    showDashboard(payload);
+  } catch (error) {
+    toast(error.message);
+  } finally {
+    button.disabled = false;
+    button.querySelector("span").textContent = "→";
+  }
+});
 $("#new-analysis").addEventListener("click", () => { analysisReady = false; $("#dashboard-view").classList.add("hidden"); $("#detail-view").classList.add("hidden"); $("#setup-view").classList.remove("hidden"); window.scrollTo({top:0,behavior:"smooth"}); });
 $("#sample-button").addEventListener("click", () => { $("#file-label").textContent = "Sample profile loaded"; $("#dropzone").classList.add("dragover"); setTimeout(() => $("#dropzone").classList.remove("dragover"), 700); toast("Sample profile loaded — ready to analyze."); });
 function isSupportedResume(file) {

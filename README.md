@@ -23,10 +23,11 @@ prove each gap is closed, and interview preparation topics.
 
 - HTML5
 - CSS3 (custom design system, no framework)
-- Vanilla JavaScript (no build step, no dependencies)
+- Vanilla JavaScript
+- Python, FastAPI, and Google Gemini
 
-The scoring and gap analysis run locally and deterministically, so the demo works offline
-with no API keys required.
+Resume extraction and career analysis run through the FastAPI backend and Gemini. The API key
+stays server-side and is never sent to the browser.
 
 ## Project Structure
 
@@ -35,20 +36,29 @@ CareerGapAI/
 ├── index.html    # Landing/upload flow, dashboard, and detail sections
 ├── styles.css    # Design system, layout, charts, responsive rules
 ├── app.js        # Navigation, upload validation, analysis rendering
+├── backend/
+│   └── main.py   # FastAPI API and Gemini integration
+├── requirements.txt
+├── .env.example
 └── README.md
 ```
 
 ## Run Locally
 
-Clone the repository and serve the folder with any static server:
+Install the backend dependencies and configure Gemini:
 
 ```bash
-git clone https://github.com/bankarsamendra04-eng/CareerGapAI.git
-cd CareerGapAI
-python3 -m http.server 4173
+python3 -m venv .venv
+source .venv/bin/activate
+pip install -r requirements.txt
+cp .env.example .env
+# Edit .env and set GEMINI_API_KEY
+set -a && source .env && set +a
+uvicorn backend.main:app --reload --port 8000
 ```
 
-Then open http://localhost:4173 in your browser.
+Then open http://localhost:8000. `GET /api/health` confirms the API is running and whether
+the Gemini key is configured.
 
 You can also open `index.html` directly in a browser — there is no build step.
 
@@ -61,14 +71,14 @@ You can also open `index.html` directly in a browser — there is no build step.
 
 ## Deployment
 
-The app is fully static, so it can be deployed to any static host (Netlify, Vercel, GitHub Pages,
-Cloudflare Pages) by publishing the repository root.
+Deploy the FastAPI app to a Python host such as Fly.io, Render, or Railway. Set
+`GEMINI_API_KEY` as a server environment variable and serve the repository root through the
+included FastAPI app.
 
 ## Roadmap
 
 Planned integrations that fit behind the current interfaces:
 
-- FastAPI backend with SQLite/SQLAlchemy persistence
-- Gemini-powered resume extraction returning structured JSON
+- SQLite/SQLAlchemy persistence
 - GitHub REST API evidence checks
 - "What if I learn this?" score simulation
