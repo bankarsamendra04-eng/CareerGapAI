@@ -10,13 +10,14 @@ prove each gap is closed, and interview preparation topics.
 
 ## Features
 
-- **Resume upload** with drag-and-drop, type and 10MB size validation, plus a sample profile for instant demos.
+- **Resume upload** with drag-and-drop, PDF/DOCX/TXT type and 10MB size validation, plus a sample profile for instant demos.
 - **Target role selection** across AI/ML Engineer, Full Stack, Backend, Data Scientist, Cloud Engineer, and Product Analyst.
 - **Deterministic job-readiness score** with a transparent breakdown (skill match, project evidence, GitHub evidence, other factors).
 - **Skill match view** separating matched skills from prioritized gaps (HIGH / MEDIUM).
 - **Roadmap** covering four focused weeks, each ending in something demonstrable.
 - **Portfolio projects** mapped to the gaps they close.
 - **Interview preparation** with technical questions and behavioral stories.
+- **GitHub evidence** with public repository and follower context when a username is supplied.
 - **Responsive SaaS-style UI** that works on desktop and mobile.
 
 ## Tech Stack
@@ -27,7 +28,8 @@ prove each gap is closed, and interview preparation topics.
 - Python, FastAPI, and Google Gemini
 
 Resume extraction and career analysis run through the FastAPI backend and Gemini. The API key
-stays server-side and is never sent to the browser.
+stays server-side and is never sent to the browser. The optional GitHub lookup only uses the
+public profile API and does not invent repository evidence.
 
 ## Project Structure
 
@@ -39,6 +41,7 @@ CareerGapAI/
 ├── backend/
 │   └── main.py   # FastAPI API and Gemini integration
 ├── requirements.txt
+├── pyproject.toml
 ├── .env.example
 └── README.md
 ```

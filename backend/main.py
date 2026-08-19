@@ -1,14 +1,15 @@
 import json
 import os
 import re
+from urllib.error import URLError
+from urllib.request import Request, urlopen
 from pathlib import Path
 from typing import Any
 
 from fastapi import FastAPI, File, Form, HTTPException, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse
-from fastapi.staticfiles import StaticFiles
-from pydantic import BaseModel, Field
+from fastapi.responses import FileResponse, JSONResponse
+from pydantic import BaseModel, Field, ValidationError
 
 try:
     from google import genai
@@ -17,7 +18,7 @@ except ImportError:
 
 ROOT = Path(__file__).resolve().parent.parent
 MAX_RESUME_SIZE = 10 * 1024 * 1024
-ALLOWED_EXTENSIONS = {".pdf", ".doc", ".docx", ".txt"}
+ALLOWED_EXTENSIONS = {".pdf", ".docx", ".txt"}
 
 
 class Analysis(BaseModel):
@@ -29,13 +30,14 @@ class Analysis(BaseModel):
     roadmap: list[dict[str, str]]
     projects: list[dict[str, str]]
     interview_questions: list[str]
+    github_evidence: dict[str, Any] = Field(default_factory=dict)
 
 
 app = FastAPI(title="CareerGap AI API", version="1.0.0")
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=os.getenv("CORS_ORIGINS", "*").split(","),
-    allow_credentials=True,
+    allow_origins=[origin.strip() for origin in os.getenv("CORS_ORIGINS", "").split(",") if origin.strip()],
+    allow_credentials=False,
     allow_methods=["*"],
     allow_headers=["*"],
 )
@@ -61,8 +63,6 @@ def extract_text(filename: str, content: bytes) -> str:
             return "\n".join(paragraph.text for paragraph in Document(BytesIO(content)).paragraphs)
         except ImportError as exc:
             raise HTTPException(500, "DOCX support is not installed.") from exc
-    if extension == ".doc":
-        raise HTTPException(400, "Legacy .doc files are not supported; export the resume as .docx or PDF.")
     raise HTTPException(400, "Use a PDF, DOCX, or TXT resume.")
 
 
@@ -75,6 +75,62 @@ def parse_json(text: str) -> dict[str, Any]:
     if not isinstance(result, dict):
         raise HTTPException(502, "Gemini returned an unexpected analysis format.")
     return result
+
+
+def github_evidence(username: str) -> dict[str, Any]:
+    if not username or not re.fullmatch(r"[A-Za-z0-9-]{1,39}", username):
+        return {}
+    request = Request(
+        f"https://api.github.com/users/{username}",
+        headers={"Accept": "application/vnd.github+json", "User-Agent": "CareerGapAI"},
+    )
+    try:
+        with urlopen(request, timeout=5) as response:
+            profile = json.loads(response.read().decode("utf-8"))
+        return {
+            "username": username,
+            "profile_url": profile.get("html_url", ""),
+            "public_repos": int(profile.get("public_repos", 0)),
+            "followers": int(profile.get("followers", 0)),
+        }
+    except (URLError, TimeoutError, ValueError, OSError):
+        return {"username": username, "status": "unavailable"}
+
+
+def normalize_analysis(payload: dict[str, Any], evidence: dict[str, Any]) -> Analysis:
+    def as_int(value: Any) -> int:
+        try:
+            return int(float(value))
+        except (TypeError, ValueError):
+            return 0
+
+    def as_text(value: Any) -> str:
+        if isinstance(value, list):
+            return ", ".join(as_text(item) for item in value)
+        if isinstance(value, dict):
+            return ", ".join(f"{key}: {as_text(item)}" for key, item in value.items())
+        return str(value)
+
+    def normalize_items(items: Any) -> list[dict[str, str]]:
+        if not isinstance(items, list):
+            return []
+        return [{str(key): as_text(value) for key, value in item.items()} for item in items if isinstance(item, dict)]
+
+    normalized = {
+        "readiness_score": as_int(payload.get("readiness_score", 0)),
+        "skill_match": as_int(payload.get("skill_match", 0)),
+        "profile_confidence": as_text(payload.get("profile_confidence", "Medium")),
+        "matched_skills": [as_text(skill) for skill in payload.get("matched_skills", [])],
+        "gaps": normalize_items(payload.get("gaps")),
+        "roadmap": normalize_items(payload.get("roadmap")),
+        "projects": normalize_items(payload.get("projects")),
+        "interview_questions": [as_text(question) for question in payload.get("interview_questions", [])],
+        "github_evidence": evidence,
+    }
+    try:
+        return Analysis.model_validate(normalized)
+    except ValidationError as exc:
+        raise HTTPException(502, "Gemini returned an incomplete analysis. Please try again.") from exc
 
 
 def analyze_with_gemini(resume_text: str, role: str, github_username: str) -> Analysis:
@@ -110,7 +166,9 @@ Resume:
         contents=prompt,
         config={"response_mime_type": "application/json"},
     )
-    return Analysis.model_validate(parse_json(response.text))
+    if not response.text:
+        raise HTTPException(502, "Gemini did not return an analysis. Please try again.")
+    return normalize_analysis(parse_json(response.text), github_evidence(github_username))
 
 
 @app.get("/api/health")
@@ -131,7 +189,7 @@ async def analyze(
         extension = Path(resume.filename or "").suffix.lower()
         if extension not in ALLOWED_EXTENSIONS:
             raise HTTPException(400, "Use a PDF, DOCX, or TXT resume.")
-        content = await resume.read()
+        content = await resume.read(MAX_RESUME_SIZE + 1)
         if len(content) > MAX_RESUME_SIZE:
             raise HTTPException(400, "That file is larger than 10MB.")
         resume_text = extract_text(resume.filename or "resume.txt", content)
@@ -147,4 +205,21 @@ async def http_exception_handler(_, exc: HTTPException) -> JSONResponse:
     return JSONResponse(status_code=exc.status_code, content={"detail": exc.detail})
 
 
-app.mount("/", StaticFiles(directory=ROOT, html=True), name="static")
+@app.get("/", include_in_schema=False)
+def index() -> FileResponse:
+    return FileResponse(ROOT / "index.html")
+
+
+@app.get("/index.html", include_in_schema=False)
+def index_file() -> FileResponse:
+    return FileResponse(ROOT / "index.html")
+
+
+@app.get("/app.js", include_in_schema=False)
+def app_script() -> FileResponse:
+    return FileResponse(ROOT / "app.js", media_type="text/javascript")
+
+
+@app.get("/styles.css", include_in_schema=False)
+def styles() -> FileResponse:
+    return FileResponse(ROOT / "styles.css", media_type="text/css")
