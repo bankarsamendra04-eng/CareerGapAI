@@ -14,7 +14,7 @@ dependencies = [
 ]
 
 [build-system]
-requires = ["setuptools>=68"]
+requires = ["setuptools>=68", "wheel>=0.42"]
 build-backend = "setuptools.build_meta"
 
 [tool.setuptools]
