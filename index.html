@@ -52,7 +52,7 @@
               <div class="step-label"><span>01</span> YOUR PROFILE</div>
               <h2>Start with your resume</h2>
               <label class="dropzone" id="dropzone">
-                <input type="file" id="resume-file" accept=".pdf,.doc,.docx,.txt" />
+                <input type="file" id="resume-file" accept=".pdf,.docx,.txt" />
                 <span class="upload-icon">↥</span>
                 <strong id="file-label">Drop your resume here</strong>
                 <small>PDF, DOCX or TXT · Max 10MB</small>
@@ -80,11 +80,11 @@
             <div><div class="eyebrow">WEDNESDAY, AUGUST 20, 2025</div><h1>Good morning, Alex <span>✦</span></h1><p>Here’s what’s standing between you and your next role.</p></div>
             <button class="secondary-button" id="new-analysis">＋ New analysis</button>
           </div>
-          <div class="role-banner"><div class="role-icon">✦</div><div><span>YOUR TARGET ROLE</span><strong id="target-role-display">AI / ML Engineer</strong></div><div class="role-divider"></div><div class="banner-meta"><span>Last analyzed</span><strong>Just now</strong></div><div class="banner-meta"><span>Profile confidence</span><strong class="green">High</strong></div><button class="more-button">•••</button></div>
+          <div class="role-banner"><div class="role-icon">✦</div><div><span>YOUR TARGET ROLE</span><strong id="target-role-display">AI / ML Engineer</strong></div><div class="role-divider"></div><div class="banner-meta"><span>Last analyzed</span><strong>Just now</strong></div><div class="banner-meta"><span>Profile confidence</span><strong class="green" id="profile-confidence">High</strong></div><button class="more-button">•••</button></div>
           <div class="stats-grid">
             <article class="score-card"><div class="card-top"><span class="card-label">JOB READINESS</span><span class="trend">↗ +8 pts</span></div><div class="score-row"><strong>72</strong><span>/ 100</span><div class="score-ring"><svg viewBox="0 0 100 100"><circle class="ring-track" cx="50" cy="50" r="42"/><circle class="ring-value" cx="50" cy="50" r="42"/></svg><b>72%</b></div></div><p>You're on the right track. Close 2 high-priority gaps to stand out.</p><div class="score-bar"><span style="width:72%"></span></div><button class="text-button" data-view="skills">See how this is calculated <span>→</span></button></article>
-            <article class="metric-card"><div class="card-top"><span class="card-label">SKILL MATCH</span><span class="metric-icon purple">⌁</span></div><strong>68<span>%</span></strong><p>11 of 16 required skills matched</p><div class="mini-bar"><span style="width:68%"></span></div><div class="metric-footer"><span class="pill green-pill">11 matched</span><span class="pill amber-pill">3 partial</span><span class="pill red-pill">2 missing</span></div></article>
-            <article class="metric-card evidence-card"><div class="card-top"><span class="card-label">EVIDENCE SIGNAL</span><span class="metric-icon orange">◈</span></div><strong>Strong</strong><p>Your projects back up your core technical skills.</p><div class="evidence-list"><span><i class="dot green-dot"></i>Projects <b>82%</b></span><span><i class="dot blue-dot"></i>GitHub <b>64%</b></span></div></article>
+            <article class="metric-card"><div class="card-top"><span class="card-label">SKILL MATCH</span><span class="metric-icon purple">⌁</span></div><strong>68<span>%</span></strong><p id="skill-match-copy">11 of 16 required skills matched</p><div class="mini-bar"><span style="width:68%"></span></div><div class="metric-footer"><span class="pill green-pill" id="matched-count">11 matched</span><span class="pill amber-pill" id="partial-count">3 partial</span><span class="pill red-pill" id="missing-count">2 missing</span></div></article>
+            <article class="metric-card evidence-card"><div class="card-top"><span class="card-label">EVIDENCE SIGNAL</span><span class="metric-icon orange">◈</span></div><strong id="evidence-strength">Strong</strong><p id="evidence-copy">Your projects back up your core technical skills.</p><div class="evidence-list"><span><i class="dot green-dot"></i>Projects <b>82%</b></span><span><i class="dot blue-dot"></i>GitHub <b>64%</b></span></div></article>
           </div>
           <div class="section-grid">
             <article class="panel focus-panel"><div class="panel-heading"><div><span class="card-label">YOUR FOCUS AREAS</span><h2>Close these gaps first</h2></div><button class="link-button" data-view="skills">View all gaps →</button></div><div class="gap-list" id="gap-list"></div></article>
