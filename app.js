@@ -155,7 +155,7 @@ $("#analyze-button").addEventListener("click", async () => {
   button.disabled = true;
   button.querySelector("span").textContent = "…";
   try {
-    const response = await fetch("/api/analyze", {method:"POST", body:formData});
+    const response = await fetch(new URL("/api/analyze", window.location.origin).href, {method:"POST", body:formData});
     const payload = await response.json().catch(() => ({}));
     if (!response.ok) throw new Error(payload.detail || "Analysis failed.");
     showDashboard(payload);
