@@ -41,14 +41,25 @@ document.addEventListener("click", event => {
 $("#analyze-button").addEventListener("click", showDashboard);
 $("#new-analysis").addEventListener("click", () => { analysisReady = false; $("#dashboard-view").classList.add("hidden"); $("#detail-view").classList.add("hidden"); $("#setup-view").classList.remove("hidden"); window.scrollTo({top:0,behavior:"smooth"}); });
 $("#sample-button").addEventListener("click", () => { $("#file-label").textContent = "Sample profile loaded"; $("#dropzone").classList.add("dragover"); setTimeout(() => $("#dropzone").classList.remove("dragover"), 700); toast("Sample profile loaded — ready to analyze."); });
-function acceptResume(file) {
+function isSupportedResume(file) {
   if (!file) return false;
   const extension = `.${file.name.split(".").pop().toLowerCase()}`;
   if (!supportedResumeExtensions.includes(extension)) { toast("Use a PDF, DOC, DOCX, or TXT resume."); return false; }
   if (file.size > maxResumeSize) { toast("That file is larger than 10MB."); return false; }
-  $("#file-label").textContent = file.name;
-  toast("Resume added to your profile.");
   return true;
 }
-$("#resume-file").addEventListener("change", event => { const file = event.target.files[0]; if (file && !acceptResume(file)) event.target.value = ""; });
-const dropzone = $("#dropzone"); ["dragenter","dragover"].forEach(type => dropzone.addEventListener(type, e => { e.preventDefault(); dropzone.classList.add("dragover"); })); ["dragleave","drop"].forEach(type => dropzone.addEventListener(type, e => { e.preventDefault(); dropzone.classList.remove("dragover"); })); dropzone.addEventListener("drop", e => { const file = e.dataTransfer.files[0]; if (acceptResume(file)) { try { const transfer = new DataTransfer(); transfer.items.add(file); $("#resume-file").files = transfer.files; } catch {} } });
+function confirmResume(file) { $("#file-label").textContent = file.name; toast("Resume added to your profile."); }
+$("#resume-file").addEventListener("change", event => { const file = event.target.files[0]; if (!file) return; if (isSupportedResume(file)) confirmResume(file); else event.target.value = ""; });
+const dropzone = $("#dropzone"); ["dragenter","dragover"].forEach(type => dropzone.addEventListener(type, e => { e.preventDefault(); dropzone.classList.add("dragover"); })); ["dragleave","drop"].forEach(type => dropzone.addEventListener(type, e => { e.preventDefault(); dropzone.classList.remove("dragover"); })); dropzone.addEventListener("drop", e => {
+  const file = e.dataTransfer.files[0];
+  if (!isSupportedResume(file)) return;
+  try {
+    const transfer = new DataTransfer();
+    transfer.items.add(file);
+    $("#resume-file").files = transfer.files;
+  } catch {
+    toast("Could not attach that file — use Browse files instead.");
+    return;
+  }
+  confirmResume(file);
+});
